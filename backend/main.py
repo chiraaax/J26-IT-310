@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 import datetime
@@ -7,6 +8,15 @@ from core.feature_fusion import process_live_telemetry
 from core.model_predict import generate_predictions
 
 app = FastAPI(title="ComfortSense Analytics API")
+
+# Enable CORS so both the Web Browser and iPhone can connect
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Define the data structure the mobile app will send
 class SensorReading(BaseModel):
