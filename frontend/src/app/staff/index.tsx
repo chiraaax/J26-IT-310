@@ -29,7 +29,8 @@ export default function StaffLogin() {
       if (userEmail === 'admin@campus.lk') {
         router.replace('/staff/admin' as any);
       } else {
-        alert('Lecturer Login Successful! Routing to Lecturer Dashboard...');
+        // Routes to the Lecturer Dashboard
+        router.replace('/staff/lecturer' as any);
       }
     } catch (e: any) {
       console.error(e);

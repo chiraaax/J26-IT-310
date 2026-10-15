@@ -6,6 +6,7 @@ import { auth } from '../../../config/firebase';
 
 export default function LecturerDashboardScreen() {
   const router = useRouter();
+  // Fetch the email of the currently logged-in user
   const userEmail = auth.currentUser?.email || 'Lecturer';
 
   const handleLogout = async () => {
