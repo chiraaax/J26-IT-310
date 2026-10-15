@@ -2,20 +2,38 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
+// Import Firebase Auth functions
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../config/firebase';
+
 export default function StaffLogin() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    // BALANCING PHASE: Hardcoded mock login until Firebase Database is connected.
-    // This allows us to test the Admin UI flow perfectly right now.
-    if (username.toLowerCase() === 'admin' && password === 'admin123') {
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
+
+    try {
+      // Authenticate securely with Firebase
+      const userCredentials = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const userEmail = userCredentials.user.email?.toLowerCase();
+
       setError('');
-      router.replace('/staff/admin' as any); // Routes to Admin Dashboard
-    } else {
-      setError('Invalid credentials. Try admin / admin123');
+
+      // Role-Based Routing
+      if (userEmail === 'admin@campus.lk') {
+        router.replace('/staff/admin' as any);
+      } else {
+        alert('Lecturer Login Successful! Routing to Lecturer Dashboard...');
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError('Invalid email or password. Please try again.');
     }
   };
 
@@ -34,13 +52,14 @@ export default function StaffLogin() {
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Username or Email</Text>
+          <Text style={styles.label}>Email Address</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. admin"
-            value={username}
-            onChangeText={setUsername}
+            placeholder="e.g. admin@campus.lk"
+            value={email}
+            onChangeText={setEmail}
             autoCapitalize="none"
+            keyboardType="email-address"
           />
 
           <Text style={styles.label}>Password</Text>
