@@ -32,7 +32,7 @@ export default function LecturerDashboardScreen() {
           <Text style={styles.emailText}>{userEmail}</Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Assigned Room Status</Text>
+        <Text style={styles.sectionTitle}>Assigned Room Status.</Text>
         
         <View style={styles.roomCard}>
           <View style={styles.cardHeader}>
