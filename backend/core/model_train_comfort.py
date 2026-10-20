@@ -1,39 +1,51 @@
+"""
+COMFORT SCORE REGRESSION
+Theoretical Foundation (Formula 1):
+CS = w1*f(CO2) + w2*f(T) + w3*f(H) + w4*f(TTT) + e
+
+This script utilizes a Random Forest Regressor to dynamically reverse-engineer 
+and apply the weights (w) to our environmental features to predict a continuous 
+Comfort Score (0-100).
+"""
+
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 import joblib
 import os
 
-# 1. Define paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_PATH = os.path.join(BASE_DIR, 'data', 'processed', 'processed_study_comfort_data.csv')
 MODEL_DIR = os.path.join(BASE_DIR, 'backend', 'models')
+os.makedirs(MODEL_DIR, exist_ok=True)
 
-# 2. Load the preprocessed dataset
-print("Loading data...")
+print("Loading data for Comfort Regression...")
 df = pd.read_csv(DATA_PATH)
 
-# 3. Define Features (X) and Target (y) for the Comfort Score
-features = ['temperature', 'humidity', 'noise', 'CO2', 'ASR', 'elapsed_time_min', 'peopleCount']
-X = df[features]
+features = ['temperature', 'humidity', 'noise', 'CO2', 'elapsed_time_min', 'peopleCount']
+X = df[features].astype(float)
 y = df['Comfort_Score']
 
-# 4. Train/Test Split to verify accuracy before saving
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-print("Training Random Forest Regressor for Comfort Score...")
-rf_regressor = RandomForestRegressor(random_state=42, n_estimators=100)
+print("Training Random Forest Regressor...")
+rf_regressor = RandomForestRegressor(random_state=42, n_estimators=100, max_depth=10)
 rf_regressor.fit(X_train, y_train)
 
-# 5. Evaluate the Model (Check accuracy)
 predictions = rf_regressor.predict(X_test)
-r2 = r2_score(y_test, predictions)
-print(f"Model R2 Score (Accuracy): {r2:.4f}")
 
-# 6. Retrain on the full dataset and Save
+print("\n" + "="*50)
+print("🌡️ COMFORT SCORE MODEL EVALUATION")
+print("="*50)
+print(f"R² Score (Accuracy Variance): {r2_score(y_test, predictions):.4f}")
+print(f"Mean Absolute Error (MAE):    {mean_absolute_error(y_test, predictions):.4f}")
+print(f"Mean Squared Error (MSE):     {mean_squared_error(y_test, predictions):.4f}")
+print("="*50 + "\n")
+
+print("Retraining on full dataset for production...")
 rf_regressor.fit(X, y)
 model_filename = os.path.join(MODEL_DIR, 'rf_comfort_model.pkl')
 joblib.dump(rf_regressor, model_filename)
 
-print(f"Success! Comfort Model permanently saved to: {model_filename}")
+print(f"Success! Model permanently saved to: {model_filename}")
