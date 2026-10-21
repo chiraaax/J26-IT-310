@@ -1,0 +1,45 @@
+======================================================================
+FINALIZING MODEL — Random Forest on temporal-cleaned data
+======================================================================
+  Loaded 55,080 rows
+  Train: 44,059  |  Test: 11,015
+
+  Training Random Forest (200 trees)...
+
+  Accuracy : 0.9401
+  Precision: 0.9398
+  Recall   : 0.9401
+  F1 Score : 0.9399
+
+  Per-class report:
+              precision    recall  f1-score   support
+
+     ambient       0.95      0.96      0.95      6923
+  disruptive       0.88      0.86      0.87      2465
+     silence       0.99      0.99      0.99      1627
+
+    accuracy                           0.94     11015
+   macro avg       0.94      0.94      0.94     11015
+weighted avg       0.94      0.94      0.94     11015
+
+  Confusion matrix:
+                    silence      ambient   disruptive
+       silence        1,616           10            1
+       ambient            4        6,619          300
+    disruptive            7          338        2,120
+
+  Top feature importances (from Random Forest):
+    mfcc1         0.2699
+    mfcc5         0.0918
+    rms_norm      0.0887
+    peak_norm     0.0785
+    zcr           0.0702
+    mfcc10        0.0645
+    crest         0.0636
+    mfcc3         0.0556
+    centroid      0.0415
+    mfcc2         0.0365
+
+  Saved → model_rf.pkl
+  Saved → scaler_rf.pkl
+  (existing model.pkl + scaler.pkl NOT overwritten)
