@@ -74,3 +74,4 @@ backend/models/*.pkl
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+**/serviceAccountKey.json

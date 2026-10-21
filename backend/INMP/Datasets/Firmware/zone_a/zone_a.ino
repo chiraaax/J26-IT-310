@@ -11,7 +11,7 @@ char calibTopic[64];
 // ---- WiFi + MQTT ----
 const char* WIFI_SSID = "PROLINK_PRS1140_0D83A";                     // <-- UPDATE: your hotspot SSID (exact)
 const char* WIFI_PASS = "20030315";              // <-- UPDATE: your hotspot password
-const char* MQTT_HOST = "172.16.24.92";           // <-- UPDATE: laptop's IP from ipconfig
+const char* MQTT_HOST = "172.16.24.107";           // <-- UPDATE: laptop's IP from ipconfig
 const int   MQTT_PORT = 1883;
 
 // Unique per device:
