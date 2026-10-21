@@ -34,3 +34,6 @@ backend/models/*.pkl
 # OS Generated Files
 .DS_Store
 Thumbs.db
+
+# Firebase Credentials
+backend/firebase-service-account.json
