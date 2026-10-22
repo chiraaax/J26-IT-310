@@ -1,139 +1,227 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../../config/firebase';
-
-// 1. Import your modular components and services
+import { doc, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
+import { db } from '../../../config/firebase'; 
 import { alertService } from '../../../services/AlertManager';
-import CO2Trend from './CO2Trend';
-
-const getBackendURL = () => {
-  if (Platform.OS === 'android') return 'http://10.0.2.2:8000';
-  if (Platform.OS === 'web') return 'http://localhost:8000';
-  return 'http://10.74.30.198:8000'; 
-};
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LecturerDashboardScreen() {
   const router = useRouter();
-  const userEmail = auth.currentUser?.email || 'Lecturer';
-  
-  const assignedRoom = "F301 Lecture hall"; 
+  const assignedRoom = "Lab 2.2"; 
 
   const [telemetry, setTelemetry] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [noiseData, setNoiseData] = useState<any>(null);
+  const [loadingCO2, setLoadingCO2] = useState(true);
+  const [loadingNoise, setLoadingNoise] = useState(true);
   const [hvacActive, setHvacActive] = useState(false);
+  const [error, setError] = useState('');
 
+  // 1. Firebase Live Data (CO2, Temp, Humidity)
   useEffect(() => {
-    const fetchTelemetry = async () => {
-      try {
-        const backendUrl = getBackendURL();
-        const response = await fetch(`${backendUrl}/api/telemetry?space_id=${encodeURIComponent(assignedRoom)}`);
+    const docRef = doc(db, 'spaces', assignedRoom);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setTelemetry(data);
         
-        if (response.ok) {
-          const data = await response.json();
-          setTelemetry(data);
-          
-          // 2. Pass live data to the separated Alert module to trigger audio/visual warnings
-          alertService.evaluateMicroClimate(data);
+        try {
+          if (alertService && data) alertService.evaluateMicroClimate(data);
+        } catch (e) {
+          console.warn("AlertManager evaluation skipped.");
         }
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
+        setLoadingCO2(false);
+      } else {
+        setError("Waiting for sensor data...");
+        setLoadingCO2(false);
       }
-    };
+    }, (err) => {
+      console.error(err);
+      setError("Cannot connect to Firebase");
+      setLoadingCO2(false);
+    });
 
-    fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => unsubscribe();
+  }, [assignedRoom]);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.replace('/' as any);
-  };
+  // 2. Firebase Live Data (Acoustics / Noise)
+  useEffect(() => {
+    const acousticQuery = query(
+      collection(db, 'acoustic_snapshots'),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
+
+    const unsubscribeNoise = onSnapshot(acousticQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        const latestData = snapshot.docs[0].data();
+        const acousticZoneID = "zone_a"; // Backend එකේ යවන නම
+        const roomAcoustic = latestData[acousticZoneID];
+
+        if (roomAcoustic) {
+          setNoiseData(roomAcoustic); 
+        } else {
+          setNoiseData(null);
+        }
+        setLoadingNoise(false);
+      } else {
+        setLoadingNoise(false);
+      }
+    }, (err) => {
+      console.error("Acoustic Firebase Error:", err);
+      setLoadingNoise(false);
+    });
+
+    return () => unsubscribeNoise();
+  }, [assignedRoom]);
 
   const handleHVACControl = () => {
     const newState = !hvacActive;
     setHvacActive(newState);
-    
     Alert.alert(
       newState ? "HVAC Activated" : "HVAC Deactivated",
-      newState 
-        ? "Cooling system engaged. The room temperature will begin decreasing shortly." 
-        : "Cooling system paused to save energy.",
+      newState ? "Cooling system engaged to reduce temperature and CO₂." : "Cooling system paused to save energy.",
       [{ text: "Understood" }]
     );
   };
 
+  const getActiveAlert = () => {
+    if (!telemetry) return null;
+    const ttt = parseInt(telemetry.ttt_minutes);
+    
+    if (!isNaN(ttt) && ttt <= 15) {
+      return {
+        type: 'danger',
+        title: `CRITICAL: Threshold in ${ttt} mins`,
+        suggestion: "Turn on HVAC Max Cooling or open windows immediately."
+      };
+    }
+    if (noiseData?.label === 'disruptive' || telemetry.acoustic_status === 'disruptive') {
+      return {
+        type: 'warning',
+        title: "High Acoustic Disturbance",
+        suggestion: "Please manage classroom noise levels to maintain focus."
+      };
+    }
+    return null;
+  };
+
+  const activeAlert = getActiveAlert();
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Top Header with Profile Icon */}
       <View style={styles.topHeader}>
         <View>
           <Text style={styles.badge}>LECTURER PORTAL</Text>
-          <Text style={styles.title}>My Classroom</Text>
+          <Text style={styles.title}>Command Center</Text>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity onPress={() => router.push('/staff/lecturer/profile')} style={styles.profileBtn}>
+          <Ionicons name="person-circle" size={42} color="#0F172A" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.welcomeCard}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.emailText}>{userEmail}</Text>
-        </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        
+        {activeAlert && (
+          <View style={[styles.alertBox, activeAlert.type === 'danger' ? styles.alertDanger : styles.alertWarning]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+              <Ionicons name="warning" size={20} color={activeAlert.type === 'danger' ? '#B91C1C' : '#B45309'} style={{ marginRight: 8 }} />
+              <Text style={[styles.alertTitle, activeAlert.type === 'danger' ? styles.textDanger : styles.textWarning]}>
+                {activeAlert.title}
+              </Text>
+            </View>
+            <Text style={styles.alertSuggestion}>{activeAlert.suggestion}</Text>
+          </View>
+        )}
 
-        <Text style={styles.sectionTitle}>Assigned Room: {assignedRoom}</Text>
+        <View style={styles.roomHeaderRow}>
+          <Text style={styles.sectionTitle}>Monitoring: {assignedRoom}</Text>
+          {telemetry && (
+            <Text style={[styles.statusBadge, { 
+              backgroundColor: telemetry.status === 'SAFE' ? '#DCFCE7' : '#FEE2E2', 
+              color: telemetry.status === 'SAFE' ? '#16A34A' : '#DC2626' 
+            }]}>
+              {telemetry.status}
+            </Text>
+          )}
+        </View>
         
         <View style={styles.roomCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.roomName}>Live Environment</Text>
-            {telemetry && (
-              <Text style={[styles.statusBadge, { backgroundColor: telemetry.status === 'Optimal' ? '#DCFCE7' : '#FEE2E2', color: telemetry.status === 'Optimal' ? '#16A34A' : '#DC2626' }]}>
-                {telemetry.status}
-              </Text>
-            )}
-          </View>
-          
-          {loading ? (
-            <ActivityIndicator size="small" color="#2563EB" style={{ marginVertical: 20 }} />
-          ) : !telemetry ? (
-            <Text style={styles.infoText}>Unable to connect to room sensors.</Text>
-          ) : (
+          {loadingCO2 ? (
+            <ActivityIndicator size="small" color="#0F172A" style={{ marginVertical: 20 }} />
+          ) : error && !telemetry ? (
+            <Text style={styles.infoText}>{error}</Text>
+          ) : telemetry ? (
             <>
-              <View style={styles.statsRow}>
-                <View style={styles.statBox}>
-                  <Text style={styles.statValue}>{telemetry.temperature}°C</Text>
-                  <Text style={styles.statLabel}>Temp</Text>
+              {/* Detailed Metrics Grid for Lecturer */}
+              <View style={styles.grid}>
+                
+                {/* CO2 */}
+                <View style={styles.gridBox}>
+                  <Ionicons name="cloud" size={20} color="#64748B" style={{ marginBottom: 4 }} />
+                  <Text style={styles.gridValue}>{telemetry.current_co2 ? Math.round(telemetry.current_co2) : "--"}</Text>
+                  <Text style={styles.gridLabel}>CO₂ (ppm)</Text>
                 </View>
-                <View style={styles.statBox}>
-                  <Text style={styles.statValue}>{telemetry.co2_ppm}</Text>
-                  <Text style={styles.statLabel}>CO₂ ppm</Text>
+
+                {/* Temperature */}
+                <View style={styles.gridBox}>
+                  <Ionicons name="thermometer" size={20} color="#64748B" style={{ marginBottom: 4 }} />
+                  <Text style={styles.gridValue}>{telemetry.current_temp ? telemetry.current_temp.toFixed(1) : "--"}°C</Text>
+                  <Text style={styles.gridLabel}>Temp</Text>
                 </View>
-                <View style={styles.statBox}>
-                  <Text style={styles.statValue}>{telemetry.occupancy}</Text>
-                  <Text style={styles.statLabel}>Students</Text>
+
+                {/* Humidity */}
+                <View style={styles.gridBox}>
+                  <Ionicons name="water" size={20} color="#64748B" style={{ marginBottom: 4 }} />
+                  <Text style={styles.gridValue}>{telemetry.humidity || telemetry.current_hum ? Math.round(telemetry.humidity || telemetry.current_hum) : "--"}%</Text>
+                  <Text style={styles.gridLabel}>Humidity</Text>
+                </View>
+
+                {/* Danger ETA */}
+                <View style={styles.gridBox}>
+                  <Ionicons name="time" size={20} color={telemetry.ttt_minutes !== "> 30" ? '#EF4444' : '#64748B'} style={{ marginBottom: 4 }} />
+                  <Text style={[styles.gridValue, {color: telemetry.ttt_minutes !== "> 30" ? '#EF4444' : '#0F172A'}]}>
+                    {telemetry.ttt_minutes}
+                  </Text>
+                  <Text style={styles.gridLabel}>Danger ETA</Text>
                 </View>
               </View>
 
-              {/* 3. Render the separated Trend UI Component */}
-              <CO2Trend />
+              {/* Acoustic Status Row */}
+              <View style={styles.acousticRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="volume-high" size={24} color="#0F172A" style={{ marginRight: 12 }} />
+                  <View>
+                    <Text style={styles.acousticTitle}>Acoustic Status</Text>
+                    <Text style={styles.acousticSubtitle}>Classroom Noise Level</Text>
+                  </View>
+                </View>
+                {loadingNoise ? (
+                  <ActivityIndicator size="small" color="#64748B" />
+                ) : (
+                  <Text style={[styles.acousticValue, { 
+                    color: noiseData?.label === 'disruptive' ? '#EF4444' : '#10B981' 
+                  }]}>
+                    {noiseData ? noiseData.label : "Offline"}
+                  </Text>
+                )}
+              </View>
 
               <View style={styles.divider} />
 
-              <Text style={styles.controlTitle}>Classroom Controls</Text>
+              <Text style={styles.controlTitle}>Environment Override</Text>
               <TouchableOpacity 
                 style={[styles.actionBtn, hvacActive ? styles.actionBtnActive : styles.actionBtnInactive]} 
                 onPress={handleHVACControl}
               >
-                <Text style={styles.actionBtnText}>
-                  {hvacActive ? "⏸ Pause HVAC System" : "❄️ Activate Max Cooling"}
+                <Ionicons name="snow" size={20} color={hvacActive ? "#2563EB" : "#0F172A"} style={{ marginRight: 8 }} />
+                <Text style={[styles.actionBtnText, { color: hvacActive ? "#2563EB" : "#0F172A" }]}>
+                  {hvacActive ? "Pause HVAC System" : "Activate Max Cooling"}
                 </Text>
               </TouchableOpacity>
             </>
-          )}
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -141,34 +229,47 @@ export default function LecturerDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F3F4F6' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   topHeader: {
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
+    paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0',
   },
-  badge: { fontSize: 10, fontWeight: '800', color: '#2563EB', letterSpacing: 0.5 },
-  title: { fontSize: 24, fontWeight: '900', color: '#111827' },
-  logoutBtn: { backgroundColor: '#FEE2E2', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
-  logoutText: { color: '#DC2626', fontWeight: '700', fontSize: 13 },
-  content: { padding: 20 },
-  welcomeCard: { marginBottom: 24 },
-  welcomeText: { fontSize: 16, color: '#6B7280', fontWeight: '500' },
-  emailText: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: '#6B7280', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 0.5 },
-  roomCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  roomName: { fontSize: 18, fontWeight: '800', color: '#111827' },
-  statusBadge: { fontSize: 11, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, overflow: 'hidden' },
-  infoText: { fontSize: 14, color: '#4B5563', lineHeight: 20, marginBottom: 20 },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  statBox: { flex: 1, backgroundColor: '#F9FAFB', padding: 12, borderRadius: 12, alignItems: 'center', marginHorizontal: 4, borderWidth: 1, borderColor: '#E5E7EB' },
-  statValue: { fontSize: 18, fontWeight: '800', color: '#111827', marginBottom: 2 },
-  statLabel: { fontSize: 11, fontWeight: '600', color: '#6B7280' },
-  divider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 16 },
-  controlTitle: { fontSize: 14, fontWeight: '700', color: '#374151', marginBottom: 12 },
-  actionBtn: { paddingVertical: 14, borderRadius: 10, alignItems: 'center', borderWidth: 2 },
-  actionBtnInactive: { backgroundColor: '#FFFFFF', borderColor: '#111827' },
-  actionBtnActive: { backgroundColor: '#EFF6FF', borderColor: '#2563EB' },
-  actionBtnText: { color: '#111827', fontSize: 14, fontWeight: '700' },
+  badge: { fontSize: 10, fontWeight: '800', color: '#2563EB', letterSpacing: 1.2, marginBottom: 4 },
+  title: { fontSize: 28, fontWeight: '900', color: '#0F172A', letterSpacing: -0.5 },
+  profileBtn: { padding: 4 },
+  content: { padding: 24, paddingBottom: 50 },
+  
+  alertBox: { padding: 20, borderRadius: 16, marginBottom: 24, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  alertDanger: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+  alertWarning: { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' },
+  alertTitle: { fontSize: 15, fontWeight: '800' },
+  textDanger: { color: '#B91C1C' },
+  textWarning: { color: '#B45309' },
+  alertSuggestion: { fontSize: 14, color: '#475569', fontWeight: '500', lineHeight: 22, marginTop: 4 },
+
+  roomHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statusBadge: { fontSize: 11, fontWeight: '800', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, overflow: 'hidden', textTransform: 'uppercase' },
+  
+  roomCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, shadowColor: '#64748B', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.06, shadowRadius: 16, elevation: 4 },
+  infoText: { fontSize: 14, color: '#64748B', textAlign: 'center', padding: 20 },
+  
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginBottom: 20 },
+  gridBox: { width: '48%', backgroundColor: '#F8FAFC', paddingVertical: 20, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9', marginBottom: 8 },
+  gridValue: { fontSize: 24, fontWeight: '900', color: '#0F172A', marginBottom: 4 },
+  gridLabel: { fontSize: 11, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
+  
+  acousticRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9' },
+  acousticTitle: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  acousticSubtitle: { fontSize: 11, fontWeight: '600', color: '#64748B', marginTop: 2 },
+  acousticValue: { fontSize: 16, fontWeight: '800', textTransform: 'capitalize' },
+
+  divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 24 },
+  
+  controlTitle: { fontSize: 12, fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: 16, letterSpacing: 0.5 },
+  actionBtn: { paddingVertical: 16, borderRadius: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
+  actionBtnInactive: { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+  actionBtnActive: { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' },
+  actionBtnText: { fontSize: 15, fontWeight: '800' },
 });

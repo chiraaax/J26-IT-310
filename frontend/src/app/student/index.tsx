@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
-  ScrollView
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -17,7 +17,7 @@ import { db } from '../../config/firebase';
 // Acoustic Component Import
 import AcousticZoneCard from './AcousticZoneCard';
 
-export default function StudentSpaceFinder() {
+export default function StudentSpacesScreen() {
   const router = useRouter();
 
   // --- FIREBASE STATE ---
@@ -56,8 +56,7 @@ export default function StudentSpaceFinder() {
   useEffect(() => {
     const fetchAcousticData = async () => {
       try {
-        // UPDATED IP ADDRESS HERE
-        const response = await fetch('http://192.168.1.136:5000/api/zones');
+        const response = await fetch('http://172.16.24.107:5000/api/zones');
         const data = await response.json();
 
         if (data.zones) {
@@ -76,16 +75,16 @@ export default function StudentSpaceFinder() {
   }, []);
 
   const filteredSpaces =
-    filter === 'All'
-      ? spaces
-      : spaces.filter((space) => space.type === filter);
+    filter === 'All' ? spaces : spaces.filter((space) => space.type === filter);
 
   const renderSpaceCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() =>
         router.push(
-          `/student/${encodeURIComponent(item.name)}?type=${encodeURIComponent(item.type)}` as any
+          `/student/${encodeURIComponent(item.name)}?type=${encodeURIComponent(
+            item.type
+          )}` as any
         )
       }
     >
@@ -104,7 +103,9 @@ export default function StudentSpaceFinder() {
       <View style={styles.cardBody}>
         <Text style={styles.cardDetail}>🏢 Type: {item.type}</Text>
         <Text style={styles.cardDetail}>👥 Capacity: {item.capacity}</Text>
-        <Text style={styles.cardDetail}>📊 Occupancy: {item.occupancy || '0%'}</Text>
+        <Text style={styles.cardDetail}>
+          📊 Occupancy: {item.occupancy || '0%'}
+        </Text>
       </View>
 
       <Text style={styles.cardAction}>Tap for live comfort telemetry →</Text>
@@ -191,6 +192,8 @@ export default function StudentSpaceFinder() {
           ))}
         </View>
 
+        <View style={styles.divider} />
+
         {loading ? (
           <View style={styles.loadingArea}>
             <ActivityIndicator size="large" color="#2563EB" />
@@ -218,41 +221,165 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: 5 },
   backBtnText: { color: '#4B5563', fontSize: 15, fontWeight: '700' },
   headerArea: { paddingHorizontal: 20, marginBottom: 15 },
-  badge: { fontSize: 11, fontWeight: '800', color: '#2563EB', letterSpacing: 0.5, marginBottom: 4 },
+  badge: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#2563EB',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
   title: { fontSize: 28, fontWeight: '900', color: '#111827' },
   subtitle: { fontSize: 14, color: '#6B7280', marginTop: 4 },
 
-  // New Acoustic Styles
+  // Acoustic Styles
   acousticSection: { marginBottom: 25 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: '#111827' },
-  liveIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444', marginRight: 4 },
-  liveText: { fontSize: 10, fontWeight: '800', color: '#EF4444', letterSpacing: 0.5 },
-  bestSpotBanner: { backgroundColor: '#2563EB', marginHorizontal: 20, padding: 20, borderRadius: 16, marginBottom: 16, shadowColor: '#2563EB', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  bestSpotLabel: { color: '#DBEAFE', fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 4 },
-  bestSpotZone: { color: '#FFFFFF', fontSize: 28, fontWeight: '900', marginBottom: 4 },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+    marginRight: 4,
+  },
+  liveText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#EF4444',
+    letterSpacing: 0.5,
+  },
+  bestSpotBanner: {
+    backgroundColor: '#2563EB',
+    marginHorizontal: 20,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  bestSpotLabel: {
+    color: '#DBEAFE',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  bestSpotZone: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
   bestSpotSub: { color: '#BFDBFE', fontSize: 13, fontWeight: '500' },
   horizontalScroll: { paddingHorizontal: 20, paddingBottom: 10 },
 
-  // Existing Styles
-  filterRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 15, gap: 8 },
-  filterBtn: { backgroundColor: '#E5E7EB', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20 },
+  // Filter
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 15,
+    gap: 8,
+  },
+  filterBtn: {
+    backgroundColor: '#E5E7EB',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+  },
   filterBtnActive: { backgroundColor: '#111827' },
   filterText: { fontSize: 13, fontWeight: '600', color: '#4B5563' },
   filterTextActive: { color: '#FFFFFF' },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 20,
+    marginBottom: 15,
+  },
+
+  // List
   listContent: { paddingHorizontal: 20, paddingBottom: 40 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   roomName: { fontSize: 18, fontWeight: '800', color: '#111827' },
-  statusBadge: { fontSize: 11, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, overflow: 'hidden' },
+  statusBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
   statusFree: { backgroundColor: '#DCFCE7', color: '#16A34A' },
   statusCrowded: { backgroundColor: '#FEE2E2', color: '#DC2626' },
-  cardBody: { backgroundColor: '#F9FAFB', padding: 12, borderRadius: 8, gap: 4, marginBottom: 12 },
+  cardBody: {
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 8,
+    gap: 4,
+    marginBottom: 12,
+  },
   cardDetail: { fontSize: 13, color: '#4B5563', fontWeight: '500' },
-  cardAction: { fontSize: 13, fontWeight: '700', color: '#2563EB', textAlign: 'right' },
-  loadingArea: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#6B7280', fontWeight: '500' },
-  emptyArea: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyText: { fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 8 },
+  cardAction: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2563EB',
+    textAlign: 'right',
+  },
+  loadingArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  emptyArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 8,
+  },
 });

@@ -1,226 +1,131 @@
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../../../config/firebase';
+import { Ionicons } from '@expo/vector-icons';
 
-// 1. We import initializeApp and the Auth tools directly to create the secondary login instance
-import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signOut as signOutAuth } from 'firebase/auth';
-import { collection, addDoc, getDocs } from 'firebase/firestore';
-import { auth, db } from '../../../config/firebase';
-
-export default function AdminDashboardScreen() {
+export default function AdminAnalyticsScreen() {
   const router = useRouter();
-
-  const [activeTab, setActiveTab] = useState<'spaces' | 'lecturers'>('spaces');
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
-
-  const [spaceName, setSpaceName] = useState('');
-  const [spaceType, setSpaceType] = useState('Classroom');
-  const [capacity, setCapacity] = useState('');
-
-  const [lecturerName, setLecturerName] = useState('');
-  const [lecturerEmail, setLecturerEmail] = useState('');
-  const [lecturerPass, setLecturerPass] = useState('');
-  const [assignedRoom, setAssignedRoom] = useState('');
-
-  const [spacesList, setSpacesList] = useState<any[]>([]);
-  const [lecturerList, setLecturerList] = useState<any[]>([]);
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   useEffect(() => {
-    fetchCampusData();
+    const spacesRef = collection(db, 'spaces');
+    const unsubscribe = onSnapshot(spacesRef, (snapshot) => {
+      const spacesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setSpaces(spacesData);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const fetchCampusData = async () => {
-    try {
-      setFetching(true);
-      const spacesSnapshot = await getDocs(collection(db, 'spaces'));
-      setSpacesList(spacesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-
-      const lecturersSnapshot = await getDocs(collection(db, 'lecturers'));
-      setLecturerList(lecturersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    } catch (error) {
-      console.error('Fetch error:', error);
-    } finally {
-      setFetching(false);
-    }
+  const getCategory = (id: string) => {
+    const lowerId = id.toLowerCase();
+    if (lowerId.includes('lab')) return 'Lab';
+    if (lowerId.includes('hall') || lowerId.includes('class')) return 'Classroom';
+    return 'Study Area';
   };
 
-  const handleAddSpace = async () => {
-    if (!spaceName.trim() || !capacity.trim()) {
-      Alert.alert('Missing Info', 'Please fill in both space name and capacity.');
-      return;
-    }
-    setLoading(true);
-    try {
-      const newSpace = { name: spaceName, type: spaceType, capacity: capacity, createdAt: new Date().toISOString() };
-      const docRef = await addDoc(collection(db, 'spaces'), newSpace);
-      
-      setSpacesList(prev => [...prev, { id: docRef.id, ...newSpace }]);
-      Alert.alert('Success', `"${spaceName}" added to campus directory.`);
-      setSpaceName(''); setCapacity('');
-    } catch (error: any) {
-      Alert.alert('Database Error', error.message);
-    }
-    setLoading(false);
+  const calculateComfort = (space: any) => {
+    let score = 100;
+    if (space.current_co2 > 1000) score -= 30;
+    else if (space.current_co2 > 800) score -= 15;
+    if (space.status === "CRITICAL") score -= 20;
+    else if (space.status === "OPEN SOON") score -= 10;
+    return Math.max(0, score);
   };
 
-  const handleCreateLecturer = async () => {
-    if (!lecturerName.trim() || !lecturerEmail.trim() || !lecturerPass.trim()) {
-      Alert.alert('Missing Info', 'Please provide lecturer name, email, and password.');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      // 2. Create a temporary secondary Firebase instance using your exact config
-      const secondaryApp = initializeApp({
-        apiKey: "AIzaSyA32n3VOQS_uP794kW4V3-7Wg-4yosKlqw",
-        authDomain: "comfortsense.firebaseapp.com",
-        projectId: "comfortsense",
-        storageBucket: "comfortsense.firebasestorage.app",
-        messagingSenderId: "949163460698",
-        appId: "1:949163460698:web:9b256a18f5b69e73cdf063"
-      }, "AdminCreateUserApp"); // The name prevents it from clashing with your main app
-
-      const secondaryAuth = getAuth(secondaryApp);
-
-      // 3. Create the actual Firebase Authentication Login Credential
-      await createUserWithEmailAndPassword(secondaryAuth, lecturerEmail.toLowerCase(), lecturerPass);
-      
-      // Log the secondary instance out immediately so it cleans up in the background
-      await signOutAuth(secondaryAuth);
-
-      // 4. Now save the public profile data to Firestore
-      const newLecturer = {
-        name: lecturerName,
-        email: lecturerEmail.toLowerCase(),
-        room: assignedRoom || 'Unassigned',
-        createdAt: new Date().toISOString()
-      };
-
-      const docRef = await addDoc(collection(db, 'lecturers'), newLecturer);
-      setLecturerList(prev => [...prev, { id: docRef.id, ...newLecturer }]);
-
-      Alert.alert('Success', `Lecturer login credential and profile created for ${lecturerName}.`);
-      setLecturerName(''); setLecturerEmail(''); setLecturerPass(''); setAssignedRoom('');
-    } catch (error: any) {
-      console.error("Auth creation error:", error);
-      Alert.alert('Error Creating Account', error.message);
-    }
-    setLoading(false);
-  };
-
-  const handleLogout = async () => {
-    await signOutAuth(auth);
-    router.replace('/' as any);
-  };
+  const filteredSpaces = spaces.filter(space => {
+    const typeMatch = typeFilter === 'All' || getCategory(space.id) === typeFilter;
+    const score = calculateComfort(space);
+    let statusMatch = true;
+    if (statusFilter === 'Good') statusMatch = score >= 80;
+    if (statusFilter === 'Warning') statusMatch = score < 80 && score >= 50;
+    if (statusFilter === 'Critical') statusMatch = score < 50;
+    return typeMatch && statusMatch;
+  });
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topHeader}>
         <View>
-          <Text style={styles.badge}>ADMINISTRATION</Text>
-          <Text style={styles.title}>System Control</Text>
+          <Text style={styles.badge}>ADMIN PORTAL</Text>
+          <Text style={styles.title}>Campus Analytics</Text>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity onPress={() => router.push('/staff/admin/profile')} style={styles.profileBtn}>
+          <Ionicons name="person-circle" size={42} color="#0F172A" />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.tabBar}>
-        <TouchableOpacity style={[styles.tabItem, activeTab === 'spaces' && styles.tabItemActive]} onPress={() => setActiveTab('spaces')}>
-          <Text style={[styles.tabLabel, activeTab === 'spaces' && styles.tabLabelActive]}>🏫 Physical Spaces</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tabItem, activeTab === 'lecturers' && styles.tabItemActive]} onPress={() => setActiveTab('lecturers')}>
-          <Text style={[styles.tabLabel, activeTab === 'lecturers' && styles.tabLabelActive]}>👨‍🏫 Lecturer Accounts</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        
+        <Text style={styles.sectionTitle}>Filter by Type</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          {['All', 'Classroom', 'Lab', 'Study Area'].map((cat) => (
+            <TouchableOpacity key={cat} style={[styles.filterBtn, typeFilter === cat && styles.filterBtnActive]} onPress={() => setTypeFilter(cat)}>
+              <Text style={[styles.filterText, typeFilter === cat && styles.filterTextActive]}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {activeTab === 'spaces' ? (
-          <>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Add New Physical Space</Text>
+        <Text style={styles.sectionTitle}>Filter by Status</Text>
+        <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+          {['All', 'Good', 'Warning', 'Critical'].map((stat) => (
+            <TouchableOpacity key={stat} style={[styles.statusBtn, statusFilter === stat && styles.statusBtnActive]} onPress={() => setStatusFilter(stat)}>
+              <Text style={[styles.statusText, statusFilter === stat && styles.statusTextActive]}>{stat}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-              <Text style={styles.inputLabel}>Space Name</Text>
-              <TextInput style={styles.input} placeholder="e.g. Science Block Room 301" value={spaceName} onChangeText={setSpaceName} />
-
-              <Text style={styles.inputLabel}>Space Type</Text>
-              <View style={styles.typeRow}>
-                {['Classroom', 'Lab', 'Common Area'].map((t) => (
-                  <TouchableOpacity key={t} style={[styles.typePill, spaceType === t && styles.typePillActive]} onPress={() => setSpaceType(t)}>
-                    <Text style={[styles.typeText, spaceType === t && styles.typeTextActive]}>{t}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.inputLabel}>Max Capacity</Text>
-              <TextInput style={styles.input} placeholder="e.g. 60" keyboardType="numeric" value={capacity} onChangeText={setCapacity} />
-
-              <TouchableOpacity style={styles.actionBtn} onPress={handleAddSpace} disabled={loading}>
-                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.actionBtnText}>+ Register Space</Text>}
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.subHeading}>Registered Spaces ({spacesList.length})</Text>
-            {fetching ? <ActivityIndicator size="large" color="#111827" style={{ marginTop: 20 }} /> : 
-              spacesList.map((item, idx) => (
-                <View key={idx} style={styles.listItem}>
-                  <View>
-                    <Text style={styles.itemTitle}>{item.name}</Text>
-                    <Text style={styles.itemSub}>{item.type} | Capacity: {item.capacity}</Text>
-                  </View>
-                  <Text style={styles.itemTag}>Active</Text>
-                </View>
-              ))
-            }
-          </>
+        <View style={styles.divider} />
+        
+        {loading ? (
+          <ActivityIndicator size="large" color="#16A34A" style={{ marginTop: 40 }} />
+        ) : filteredSpaces.length === 0 ? (
+          <Text style={styles.infoText}>No spaces found matching criteria.</Text>
         ) : (
-          <>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Provision Lecturer Account</Text>
-
-              <Text style={styles.inputLabel}>Lecturer Name</Text>
-              <TextInput style={styles.input} placeholder="e.g. Dr. K. Silva" value={lecturerName} onChangeText={setLecturerName} />
-
-              <Text style={styles.inputLabel}>Email / Login Username</Text>
-              <TextInput style={styles.input} placeholder="silva@campus.lk" autoCapitalize="none" value={lecturerEmail} onChangeText={setLecturerEmail} />
-
-              <Text style={styles.inputLabel}>Initial Password</Text>
-              <TextInput style={styles.input} placeholder="••••••••" secureTextEntry value={lecturerPass} onChangeText={setLecturerPass} />
-
-              <Text style={styles.inputLabel}>Assigned Room (Optional)</Text>
-              <TextInput style={styles.input} placeholder="e.g. Lab 02" value={assignedRoom} onChangeText={setAssignedRoom} />
-
-              <TouchableOpacity style={styles.actionBtn} onPress={handleCreateLecturer} disabled={loading}>
-                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.actionBtnText}>+ Create Lecturer Credentials</Text>}
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.subHeading}>Active Lecturers ({lecturerList.length})</Text>
-            {fetching ? <ActivityIndicator size="large" color="#111827" style={{ marginTop: 20 }} /> : 
-              lecturerList.map((lec, idx) => (
-                <View key={idx} style={styles.listItem}>
+          filteredSpaces.map((space) => {
+            const score = calculateComfort(space);
+            const isCritical = score < 50;
+            return (
+              <TouchableOpacity 
+                key={space.id} 
+                style={[styles.spaceCard, isCritical && { borderColor: '#FECACA', borderWidth: 2 }]}
+                // Error එක හැදීම: Dynamic Route එකක් යවන ආකාරය නිවැරදි කර ඇත (as any භාවිතා කර)
+                onPress={() => router.push({ pathname: '/staff/admin/room/[id]', params: { id: space.id } } as any)}
+              >
+                <View style={styles.cardHeader}>
                   <View>
-                    <Text style={styles.itemTitle}>{lec.name}</Text>
-                    <Text style={styles.itemSub}>{lec.email} | Room: {lec.room}</Text>
+                    <Text style={styles.spaceName}>{space.id}</Text>
+                    <Text style={styles.spaceType}>{getCategory(space.id)}</Text>
                   </View>
-                  <Text style={styles.itemTag}>Provisioned</Text>
+                  <View style={[styles.scoreBadge, { backgroundColor: score >= 80 ? '#ECFDF5' : score >= 50 ? '#FFFBEB' : '#FEF2F2' }]}>
+                    <Text style={[styles.scoreText, { color: score >= 80 ? '#10B981' : score >= 50 ? '#D97706' : '#EF4444' }]}>
+                      {score}/100
+                    </Text>
+                  </View>
                 </View>
-              ))
-            }
-          </>
+                
+                <View style={styles.metricsRow}>
+                  <View style={styles.metricBox}>
+                    <Text style={styles.metricValue}>{space.current_co2 ? Math.round(space.current_co2) : '--'}</Text>
+                    <Text style={styles.metricLabel}>CO₂ (ppm)</Text>
+                  </View>
+                  <View style={styles.metricBox}>
+                    <Text style={styles.metricValue}>{space.current_temp ? space.current_temp.toFixed(1) : '--'}°C</Text>
+                    <Text style={styles.metricLabel}>Temp</Text>
+                  </View>
+                  <View style={styles.metricBox}>
+                    <Text style={[styles.metricValue, {color: space.ttt_minutes !== '> 30' ? '#EF4444' : '#0F172A'}]}>{space.ttt_minutes || '--'}</Text>
+                    <Text style={styles.metricLabel}>Danger ETA</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )
+          })
         )}
       </ScrollView>
     </SafeAreaView>
@@ -228,32 +133,32 @@ export default function AdminDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  topHeader: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  badge: { fontSize: 10, fontWeight: '800', color: '#DC2626', letterSpacing: 0.5 },
-  title: { fontSize: 24, fontWeight: '900', color: '#111827' },
-  logoutBtn: { backgroundColor: '#FEE2E2', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
-  logoutText: { color: '#DC2626', fontWeight: '700', fontSize: 13 },
-  tabBar: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
-  tabItem: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabItemActive: { borderBottomColor: '#111827' },
-  tabLabel: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  tabLabelActive: { color: '#111827', fontWeight: '700' },
-  scrollContent: { padding: 18, paddingBottom: 40 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, marginBottom: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
-  cardTitle: { fontSize: 17, fontWeight: '800', color: '#111827', marginBottom: 14 },
-  inputLabel: { fontSize: 12, fontWeight: '700', color: '#4B5563', marginBottom: 6, textTransform: 'uppercase' },
-  input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12, fontSize: 14, marginBottom: 14 },
-  typeRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  typePill: { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 8 },
-  typePillActive: { backgroundColor: '#111827' },
-  typeText: { fontSize: 12, fontWeight: '600', color: '#4B5563' },
-  typeTextActive: { color: '#FFFFFF' },
-  actionBtn: { backgroundColor: '#111827', paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginTop: 4 },
-  actionBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  subHeading: { fontSize: 13, fontWeight: '800', color: '#6B7280', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 },
-  listItem: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#F3F4F6' },
-  itemTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  itemSub: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  itemTag: { fontSize: 11, fontWeight: '700', color: '#16A34A', backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  topHeader: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  badge: { fontSize: 10, fontWeight: '800', color: '#16A34A', letterSpacing: 1.2, marginBottom: 4 },
+  title: { fontSize: 28, fontWeight: '900', color: '#0F172A', letterSpacing: -0.5 },
+  profileBtn: { padding: 4 },
+  content: { padding: 24, paddingBottom: 50 },
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  filterScroll: { flexDirection: 'row', marginBottom: 20 },
+  filterBtn: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: '#E2E8F0' },
+  filterBtnActive: { backgroundColor: '#16A34A', borderColor: '#15803D' },
+  filterText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
+  filterTextActive: { color: '#FFFFFF' },
+  statusBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', marginHorizontal: 4, borderRadius: 8 },
+  statusBtnActive: { backgroundColor: '#0F172A', borderColor: '#0F172A' },
+  statusText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  statusTextActive: { color: '#FFFFFF' },
+  divider: { height: 1, backgroundColor: '#E2E8F0', marginBottom: 24 },
+  infoText: { color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', marginTop: 20 },
+  spaceCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: '#64748B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#F1F5F9' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  spaceName: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  spaceType: { fontSize: 11, color: '#64748B', fontWeight: '700', textTransform: 'uppercase', marginTop: 2 },
+  scoreBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  scoreText: { fontSize: 14, fontWeight: '900' },
+  metricsRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  metricBox: { alignItems: 'center', flex: 1, backgroundColor: '#F8FAFC', paddingVertical: 12, borderRadius: 10, marginHorizontal: 4 },
+  metricValue: { fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 4 },
+  metricLabel: { fontSize: 10, fontWeight: '700', color: '#64748B', textTransform: 'uppercase' },
 });
