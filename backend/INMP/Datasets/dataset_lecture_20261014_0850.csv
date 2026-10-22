@@ -1,0 +1,1 @@
+timestamp,session_id,location,time_of_day,zone_id,mode,auto_label,override_label,final_label,rms,peak,zcr,centroid,lecture_baseline_mean,lecture_baseline_std,calib_baseline_rms,calib_rms_std,calib_baseline_peak,calib_p90_peak,mfcc1,mfcc2,mfcc3,mfcc4,mfcc5,mfcc6,mfcc7,mfcc8,mfcc9,mfcc10,mfcc11,mfcc12,mfcc13

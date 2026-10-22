@@ -1,0 +1,35 @@
+C:\Users\KATANA\AppData\Local\Python\pythoncore-3.15-64\Lib\site-packages\sklearn\svm\_base.py:236: FutureWarning: The `probability` parameter was deprecated in 1.9 and will be removed in version 1.11. Use `CalibratedClassifierCV(SVC(), ensemble=False)` instead of `SVC(probability=True)`
+  warnings.warn(
+======================================================================
+FINALIZING MODEL — Training on temporal-cleaned data
+======================================================================
+  Loaded 55,080 rows
+  Train: 44,059  |  Test: 11,015
+
+  Training SVM (RBF)...
+
+  Accuracy : 0.9200
+  Precision: 0.9205
+  Recall   : 0.9200
+  F1 Score : 0.9200
+
+  Per-class report:
+              precision    recall  f1-score   support
+
+     ambient       0.95      0.93      0.94      6923
+  disruptive       0.85      0.86      0.85      2465
+     silence       0.92      0.99      0.95      1627
+
+    accuracy                           0.92     11015
+   macro avg       0.91      0.92      0.91     11015
+weighted avg       0.92      0.92      0.92     11015
+
+  Confusion matrix:
+                    silence      ambient   disruptive
+       silence        1,604           18            5
+       ambient          130        6,416          377
+    disruptive            3          348        2,114
+
+  Saved → model.pkl
+  Saved → scaler.pkl
+  Features expected: ['rms_norm', 'peak_norm', 'crest', 'zcr', 'centroid', 'mfcc1', 'mfcc2', 'mfcc3', 'mfcc4', 'mfcc5', 'mfcc6', 'mfcc7', 'mfcc8', 'mfcc9', 'mfcc10', 'mfcc11', 'mfcc12', 'mfcc13']

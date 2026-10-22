@@ -1,0 +1,72 @@
+{
+  "baseline_1_global": {
+    "avg_fpr": 0.5906685326173993,
+    "per_room": [
+      {
+        "location": "library",
+        "ambient_n": 6004,
+        "disrupt_n": 2417,
+        "FP": 1497,
+        "TN": 4507,
+        "FPR": 0.24933377748167887,
+        "FNR": 0.282167976830782
+      },
+      {
+        "location": "study_area",
+        "ambient_n": 13383,
+        "disrupt_n": 7638,
+        "FP": 12473,
+        "TN": 910,
+        "FPR": 0.9320032877531196,
+        "FNR": 0.007986383870123069
+      }
+    ]
+  },
+  "baseline_2_tuned": {
+    "avg_fpr": 0.07488547947038521,
+    "per_room": [
+      {
+        "location": "library",
+        "tuned_thr": 3429.786,
+        "best_F1": 0.6421545667447307,
+        "FPR": 0.08027981345769487,
+        "FNR": 0.4327678940835747
+      },
+      {
+        "location": "study_area",
+        "tuned_thr": 5345.449999999999,
+        "best_F1": 0.7711724632484761,
+        "FPR": 0.06949114548307554,
+        "FNR": 0.2960199004975124
+      }
+    ]
+  },
+  "proposed_ml": {
+    "avg_fpr": 0.0477549650033743,
+    "per_room": [
+      {
+        "location": "library",
+        "ambient_n": 1231,
+        "disrupt_n": 492,
+        "FP": 52,
+        "TN": 1179,
+        "FPR": 0.04224207961007311,
+        "FNR": 0.4186991869918699
+      },
+      {
+        "location": "study_area",
+        "ambient_n": 2647,
+        "disrupt_n": 1519,
+        "FP": 141,
+        "TN": 2506,
+        "FPR": 0.05326785039667548,
+        "FNR": 0.12113232389730086
+      }
+    ]
+  },
+  "reduction_vs_global": 0.8867130260532545,
+  "reduction_vs_tuned": 0.3536364385220021,
+  "target": 0.2,
+  "pass_vs_global": true,
+  "pass_vs_tuned": true
+}

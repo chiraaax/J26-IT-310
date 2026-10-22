@@ -37,10 +37,12 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "concurrently": "^10.0.6",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
+    "dev": "concurrently -k \"cd ../backend && python -m uvicorn main:app --reload\" \"cd ../backend/INMP/Datasets && python acoustic_backend.py\" \"npx expo start\"",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",

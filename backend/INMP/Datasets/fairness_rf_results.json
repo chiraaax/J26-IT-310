@@ -1,0 +1,16 @@
+{
+  "baseline_1_global": {
+    "avg_fpr": 0.527294550867555
+  },
+  "baseline_2_tuned": {
+    "avg_fpr": 0.052413347990943104
+  },
+  "proposed_rf": {
+    "avg_fpr": 0.03895596015292007
+  },
+  "reduction_vs_global": 0.9240593263943667,
+  "reduction_vs_tuned": 0.15895667722782367,
+  "target": 0.2,
+  "pass_vs_global": true,
+  "pass_vs_tuned": false
+}
