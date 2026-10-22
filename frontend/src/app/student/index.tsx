@@ -19,7 +19,7 @@ import AcousticZoneCard from './AcousticZoneCard';
 
 export default function StudentSpaceFinder() {
   const router = useRouter();
-  
+
   // --- FIREBASE STATE ---
   const [spaces, setSpaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,18 +32,22 @@ export default function StudentSpaceFinder() {
   // 1. Fetch rooms from Firebase
   useEffect(() => {
     const spacesRef = collection(db, 'spaces');
-    
-    const unsubscribe = onSnapshot(spacesRef, (snapshot) => {
-      const liveSpaces = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setSpaces(liveSpaces);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching live spaces:", error);
-      setLoading(false);
-    });
+
+    const unsubscribe = onSnapshot(
+      spacesRef,
+      (snapshot) => {
+        const liveSpaces = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setSpaces(liveSpaces);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error fetching live spaces:', error);
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, []);
@@ -53,16 +57,16 @@ export default function StudentSpaceFinder() {
     const fetchAcousticData = async () => {
       try {
         // UPDATED IP ADDRESS HERE
-        const response = await fetch('http://192.168.1.174:5000/api/zones');
+        const response = await fetch('http://192.168.1.136:5000/api/zones');
         const data = await response.json();
-        
+
         if (data.zones) {
           setAcousticZones(data.zones);
           setBestZone(data.quietest_zone);
         }
       } catch (error) {
         // Silently fail if the Python server is offline to not break the app
-        console.log("Acoustic API offline or unreachable"); 
+        console.log('Acoustic API offline or unreachable');
       }
     };
 
@@ -71,31 +75,38 @@ export default function StudentSpaceFinder() {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredSpaces = filter === 'All' 
-    ? spaces 
-    : spaces.filter(space => space.type === filter);
+  const filteredSpaces =
+    filter === 'All'
+      ? spaces
+      : spaces.filter((space) => space.type === filter);
 
   const renderSpaceCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => router.push(`/student/${encodeURIComponent(item.name)}?type=${encodeURIComponent(item.type)}` as any)}
+      onPress={() =>
+        router.push(
+          `/student/${encodeURIComponent(item.name)}?type=${encodeURIComponent(item.type)}` as any
+        )
+      }
     >
       <View style={styles.cardHeader}>
         <Text style={styles.roomName}>{item.name}</Text>
-        <Text style={[
-          styles.statusBadge, 
-          item.status === 'Free' ? styles.statusFree : styles.statusCrowded
-        ]}>
+        <Text
+          style={[
+            styles.statusBadge,
+            item.status === 'Free' ? styles.statusFree : styles.statusCrowded,
+          ]}
+        >
           {item.status || 'Free'}
         </Text>
       </View>
-      
+
       <View style={styles.cardBody}>
         <Text style={styles.cardDetail}>🏢 Type: {item.type}</Text>
         <Text style={styles.cardDetail}>👥 Capacity: {item.capacity}</Text>
         <Text style={styles.cardDetail}>📊 Occupancy: {item.occupancy || '0%'}</Text>
       </View>
-      
+
       <Text style={styles.cardAction}>Tap for live comfort telemetry →</Text>
     </TouchableOpacity>
   );
@@ -113,7 +124,9 @@ export default function StudentSpaceFinder() {
         <View style={styles.headerArea}>
           <Text style={styles.badge}>STUDENT VIEW</Text>
           <Text style={styles.title}>Campus Spaces</Text>
-          <Text style={styles.subtitle}>Select a room to view environmental conditions.</Text>
+          <Text style={styles.subtitle}>
+            Select a room to view environmental conditions.
+          </Text>
         </View>
 
         {/* --- LIVE ACOUSTIC MODULE --- */}
@@ -126,18 +139,26 @@ export default function StudentSpaceFinder() {
                 <Text style={styles.liveText}>LIVE</Text>
               </View>
             </View>
-            
+
             {bestZone && (
               <View style={styles.bestSpotBanner}>
                 <Text style={styles.bestSpotLabel}>🏆 BEST SPOT RIGHT NOW</Text>
-                <Text style={styles.bestSpotZone}>{bestZone.replace('_', ' ').toUpperCase()}</Text>
-                <Text style={styles.bestSpotSub}>Currently the quietest space on campus</Text>
+                <Text style={styles.bestSpotZone}>
+                  {bestZone.replace('_', ' ').toUpperCase()}
+                </Text>
+                <Text style={styles.bestSpotSub}>
+                  Currently the quietest space on campus
+                </Text>
               </View>
             )}
-            
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScroll}
+            >
               {acousticZones.map((zone) => (
-                <AcousticZoneCard 
+                <AcousticZoneCard
                   key={zone.zone_id}
                   zone_id={zone.zone_id}
                   label={zone.label}
@@ -158,7 +179,12 @@ export default function StudentSpaceFinder() {
               style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
               onPress={() => setFilter(f)}
             >
-              <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
+              <Text
+                style={[
+                  styles.filterText,
+                  filter === f && styles.filterTextActive,
+                ]}
+              >
                 {f}
               </Text>
             </TouchableOpacity>
@@ -176,8 +202,8 @@ export default function StudentSpaceFinder() {
           </View>
         ) : (
           <View style={styles.listContent}>
-            {filteredSpaces.map(item => (
-               <View key={item.id}>{renderSpaceCard({item})}</View>
+            {filteredSpaces.map((item) => (
+              <View key={item.id}>{renderSpaceCard({ item })}</View>
             ))}
           </View>
         )}
@@ -195,7 +221,7 @@ const styles = StyleSheet.create({
   badge: { fontSize: 11, fontWeight: '800', color: '#2563EB', letterSpacing: 0.5, marginBottom: 4 },
   title: { fontSize: 28, fontWeight: '900', color: '#111827' },
   subtitle: { fontSize: 14, color: '#6B7280', marginTop: 4 },
-  
+
   // New Acoustic Styles
   acousticSection: { marginBottom: 25 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },

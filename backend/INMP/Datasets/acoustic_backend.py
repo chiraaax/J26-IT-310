@@ -25,8 +25,6 @@ TOPIC_CALIB = "campus/zones/+/calibration"
 STALE_AFTER = 3.0
 API_PORT = 5000
 
-SCORE_BY_LABEL = {"silence": 0, "ambient": 50, "disruptive": 100}
-
 # ---------- LOAD MODEL ----------
 print("[LOAD] Loading Random Forest model...")
 model = joblib.load("model.pkl")
@@ -34,11 +32,6 @@ scaler = joblib.load("scaler.pkl")
 
 if hasattr(model, 'n_jobs'):
     model.n_jobs = 1
-
-try:
-    DISRUPTIVE_IDX = list(model.classes_).index("disruptive")
-except ValueError:
-    DISRUPTIVE_IDX = 2 
 
 # ---------- FIREBASE INITIALIZATION ----------
 db = None
@@ -156,18 +149,26 @@ def on_message(client, userdata, msg):
         label = model.predict(features_s)[0]
         proba = model.predict_proba(features_s)[0]
         
-        prob_disruptive = float(proba[DISRUPTIVE_IDX])
+        # Extract probabilities for each class
+        prob_dict = {cls: float(p) for cls, p in zip(model.classes_, proba)}
+        p_silence = prob_dict.get("silence", 0.0)
+        p_ambient = prob_dict.get("ambient", 0.0)
+        p_disruptive = prob_dict.get("disruptive", 0.0)
+
+        # 🚨 DYNAMIC CONTINUOUS SCORE (Expected Value)
+        # Formula: (P_silence * 0) + (P_ambient * 50) + (P_disruptive * 100)
+        continuous_score = (p_silence * 0) + (p_ambient * 50) + (p_disruptive * 100)
         
         payload = {
             "zone_id": zone,
             "label": label,
             "confidence": float(np.max(proba)),
-            "disruption_score": SCORE_BY_LABEL.get(label, 0),
+            "disruption_score": round(continuous_score, 1),
             "rms_norm": round(rms_norm, 3),
-            "prob_disruptive": round(prob_disruptive, 3),
+            "prob_disruptive": round(p_disruptive, 3),
             "rms_raw": round(rms, 2),
             "baseline_rms": round(baseline_rms, 2),
-            "probabilities": {cls: round(float(p), 3) for cls, p in zip(model.classes_, proba)}
+            "probabilities": {cls: round(float(p), 3) for cls, p in prob_dict.items()}
         }
         
         with lock:
