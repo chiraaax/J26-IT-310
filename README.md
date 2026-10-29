@@ -1,11 +1,11 @@
 <div align="center">
   
-  # 🧠 ComfortSense: Predictive ML & Backend API Component
+  # 🧠 ComfortSense: Predictive Student Drowsiness Monitoring & Analytics
   **Final Year Research Project Component - SLIIT**
 
   [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
-  [![XGBoost](https://img.shields.io/badge/XGBoost-172434?style=for-the-badge&logo=xgboost&logoColor=white)](#)
   [![Scikit-Learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)](#)
+  [![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
   [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](#)
 
 </div>
@@ -13,58 +13,57 @@
 ---
 
 ## 👤 Component Author
-* **Name:** Wanniarachchige Nethna Oshad
+* **Name:** W. A.N. Oshad
 * **Student ID:** IT23387430
-* **Role:** Predictive ML & Full-Stack Integration (Member 4)
+* **Research Component:** Predictive Student Drowsiness Monitoring and Analytics Platform
 
 ---
 
 ## 📖 Component Overview
-This repository contains the **Predictive Machine Learning Engine and Backend API** component for the **ComfortSense** campus environment intelligence platform. 
+This repository contains the **Predictive Multi-Variant Ensemble Modeling and Student Analytics** component for the **ComfortSense** platform. 
 
-While the broader ComfortSense system handles IoT data collection and mobile UI, **this specific component acts as the "brain" of the platform.** It is responsible for processing raw environmental telemetry (CO₂, temperature, humidity, noise), predicting future air quality degradation, calculating Time-to-Threshold (TTT), and quantifying an ASHRAE-standardized Comfort Score using advanced ensemble learning techniques.
+While individual sensors can flag isolated issues (e.g., a room being too hot), human cognitive fatigue is caused by the complex combination of multiple environmental factors. The novelty of this component lies in fusing disparate physical variables—CO₂, acoustic disruption, humidity, and spatial thermal mass—into a single predictive machine learning model. It shifts the system from passive environmental monitoring to **predictive behavioral analytics**, forecasting the probability of cognitive decline and drowsiness before it actively disrupts a learning session.
 
 ---
 
-## ✨ Key Technical Contributions (IT23387430)
+## ✨ Key Research Contributions & Novelty (IT23387430)
 
-### 1. Multi-Output CO₂ Forecasting (XGBoost)
-* Designed a `MultiOutputRegressor` wrapped around an `XGBRegressor` to predict CO₂ levels in 5-minute intervals up to 30 minutes into the future.
-* Implemented **Absolute Secretion Rate (ASR)** calculations as a dynamic feature engineering step to capture sudden spikes in classroom occupancy.
+### 1. Synchronized Backend Data Pipeline
+* Developed a robust backend data pipeline that aggregates disparate telemetry streams (CO₂, noise, headcount, climate) from decentralized IoT nodes into normalized ML feature vectors in real time.
 
-### 2. Time-to-Threshold (TTT) Engine
-* Engineered the logic to calculate the exact Estimated Time of Arrival (ETA) to the **1500 ppm ASHRAE critical danger threshold**.
-* Integrated proactive status categorization (`SAFE`, `CONSIDER`, `OPEN SOON`, `CRITICAL`) based on the forecasted TTT.
+### 2. Synthetic-to-Live Data Strategy
+* Utilized Mockaroo to generate synthetic time-series datasets simulating logical environmental degradation patterns (e.g., correlating rising CO₂ with increased acoustic variance).
+* Bootstrapped the initial machine learning model with this simulated data prior to physical hardware deployment, ensuring immediate software validation and UI testing.
+* Transitioned the validated machine learning model to process live IoT telemetry, dynamically classifying attention levels and predicting drowsiness probability in real time.
 
-### 3. Comfort Score Regression (Random Forest)
-* Developed a continuous 0-100 Comfort Score model using a `RandomForestRegressor`.
-* Reverse-engineered environmental weights based on CO₂ penalties, acoustic disruptions (Ambient vs. Disruptive), and temperature anomalies.
+### 3. Predictive Multi-Variant Ensemble Modeling
+* Engineered the core Machine Learning architecture that fuses multiple physical variables into a unified predictive model.
+* Moved beyond reactive thresholds by proactively forecasting the probability of cognitive decline based on combined environmental degradation.
 
-### 4. Hardware Variance Simulation (Gaussian Noise Injection)
-* To bridge the gap between clean synthetic baseline data and real-world ESP32 hardware inaccuracies, **Gaussian noise injection** was programmatically added to the training pipelines.
-* This prevents artificial 100% accuracy overfitting and ensures the models perform robustly when exposed to live, fluctuating sensor data.
+### 4. "Student View" Spatial Dashboard
+* Constructed a responsive cross-platform mobile frontend (React Native) serving as the "Student View Dashboard."
+* Translated complex unified comfort indices into an intuitive, live 2D spatial map, actively assisting students in identifying optimal, distraction-free study zones across the campus.
 
-### 5. Backend Integration & API
-* Developed the Python backend (FastAPI/Flask) to serialize/deserialize ML models using `joblib`.
-* Bridged the Python analytics engine with the React Native frontend and Firebase Firestore, ensuring real-time telemetry is processed and updated efficiently.
+### 5. Automated End-to-End Validation Framework
+* Architected and executed an automated end-to-end validation framework.
+* Rigorously verified data flow synchronicity and prediction accuracy between the Python-based backend ML engine and the React Native mobile frontend application.
 
 ---
 
 ## 📂 Component Directory Structure
 
-Only the directories and files maintained under this component are highlighted below:
+Only the directories and files maintained under this specific component are highlighted below:
 
 ```text
 ComfortSense-Analytics/
-├── backend/                  # Core Component Directory (IT23387430)
+├── backend/                  # Core ML & Backend Directory (IT23387430)
 │   ├── core/                 
-│   │   ├── model_train_xgboost.py    # XGBoost Forecasting & TTT Logic
-│   │   └── model_train_rf.py         # Random Forest Comfort Scoring
+│   │   ├── pipeline_sync.py          # Aggregates CO2, noise, and climate telemetry
+│   │   └── model_train_ensemble.py   # Multi-variant Drowsiness/Attention ML models
+│   ├── data_generation/      # Synthetic-to-Live data bootstrapping scripts
 │   ├── models/               # Serialized ML artifacts (.pkl)
-│   │   ├── xgb_co2_forecast.pkl
-│   │   ├── rf_comfort_model.pkl
-│   │   └── label_encoder.pkl
-│   └── api.py                # REST API serving model inferences
-├── data/                     
-│   └── processed/            # Cleaned datasets used for model training
+│   └── api.py                # REST API serving model inferences to the frontend
+├── frontend/                 
+│   └── src/app/student/      # Student View Dashboard & 2D Spatial Map (React Native)
+├── tests/                    # End-to-end validation framework
 └── requirements.txt          # Python dependencies
