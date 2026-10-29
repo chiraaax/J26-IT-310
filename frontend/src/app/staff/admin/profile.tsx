@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity } from 'react-na
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../../config/firebase';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminProfileScreen() {
   const router = useRouter();
@@ -16,47 +17,65 @@ export default function AdminProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}><Text style={styles.backBtn}>← Back</Text></TouchableOpacity>
         <Text style={styles.title}>Admin Profile</Text>
       </View>
 
       <View style={styles.content}>
         <View style={styles.profileCard}>
-          <View style={styles.avatar}><Text style={styles.avatarText}>A</Text></View>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{adminEmail.charAt(0).toUpperCase()}</Text>
+          </View>
           <Text style={styles.roleText}>System Administrator</Text>
           <Text style={styles.emailText}>{adminEmail}</Text>
         </View>
 
+        <Text style={styles.sectionTitle}>System Settings</Text>
+        
         <View style={styles.settingsGroup}>
           <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingText}>Change Password</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="server-outline" size={20} color="#475569" style={{ marginRight: 12 }} />
+              <Text style={styles.settingText}>Database Configurations</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
           </TouchableOpacity>
+          
           <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingText}>System Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.settingItem, styles.logoutItem]} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Log Out Securely</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="lock-closed-outline" size={20} color="#475569" style={{ marginRight: 12 }} />
+              <Text style={styles.settingText}>Security Settings</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color="#DC2626" style={{ marginRight: 8 }} />
+          <Text style={styles.logoutText}>Log Out Securely</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  header: { padding: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderColor: '#E5E7EB' },
-  backBtn: { fontSize: 16, color: '#4B5563', fontWeight: '600', marginRight: 16 },
-  title: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  content: { padding: 20 },
-  profileCard: { backgroundColor: '#FFFFFF', padding: 24, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 24 },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  avatarText: { fontSize: 28, color: '#FFFFFF', fontWeight: '800' },
-  roleText: { fontSize: 12, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', marginBottom: 4 },
-  emailText: { fontSize: 18, fontWeight: '800', color: '#111827' },
-  settingsGroup: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden' },
-  settingItem: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  settingText: { fontSize: 15, fontWeight: '600', color: '#374151' },
-  logoutItem: { borderBottomWidth: 0, backgroundColor: '#FEF2F2' },
-  logoutText: { fontSize: 15, fontWeight: '700', color: '#DC2626' }
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderColor: '#E2E8F0' },
+  title: { fontSize: 28, fontWeight: '900', color: '#0F172A', letterSpacing: -0.5 },
+  content: { padding: 24 },
+  
+  profileCard: { backgroundColor: '#FFFFFF', padding: 32, borderRadius: 20, alignItems: 'center', shadowColor: '#64748B', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.06, shadowRadius: 16, elevation: 4, marginBottom: 32, borderWidth: 1, borderColor: '#F1F5F9' },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#16A34A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  avatarText: { fontSize: 32, color: '#FFFFFF', fontWeight: '900' },
+  roleText: { fontSize: 12, fontWeight: '800', color: '#16A34A', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
+  emailText: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 0.5, paddingLeft: 4 },
+  
+  settingsGroup: { backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden', shadowColor: '#64748B', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, marginBottom: 32, borderWidth: 1, borderColor: '#F1F5F9' },
+  settingItem: { padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  settingText: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
+  
+  logoutBtn: { backgroundColor: '#FEF2F2', paddingVertical: 16, borderRadius: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FECACA' },
+  logoutText: { fontSize: 15, fontWeight: '800', color: '#DC2626' }
 });
