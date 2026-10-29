@@ -1,40 +1,70 @@
 <div align="center">
   
-  # 📱 ComfortSense: Mobile Application & UI/UX Component
+  # 🌬️ ComfortSense: Predictive Air Quality Intelligence
   **Final Year Research Project Component - SLIIT**
 
+  [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
+  [![XGBoost](https://img.shields.io/badge/XGBoost-172434?style=for-the-badge&logo=xgboost&logoColor=white)](#)
   [![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
-  [![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)](#)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](#)
-  [![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](#)
+  [![ESP32](https://img.shields.io/badge/ESP32-E7352C?style=for-the-badge&logo=espressif&logoColor=white)](#)
 
 </div>
 
 ---
 
 ## 👤 Component Author
-* **Name:** [Member Name - e.g., WEERASEKARA W.M.P.K.]
+* **Name:** D.M.V.W. Mahakumbura
 * **Student ID:** IT23321472
-* **Role:** Frontend UI/UX & Mobile Development
+* **Research Component:** Predictive Air Quality Intelligence and Monitoring System
 
 ---
 
 ## 📖 Component Overview
-This repository contains the **Mobile Application and Frontend UI/UX** component for the **ComfortSense** campus environment intelligence platform. 
+This repository contains the **Predictive Air Quality Intelligence** component for the ComfortSense platform. 
 
-This component serves as the primary user interface for both students and university administrators. It is engineered using **React Native (Expo)** to provide a seamless, cross-platform experience. It connects directly to Firebase Firestore for real-time telemetry updates and visualizes complex Machine Learning data (Time-to-Threshold, Comfort Scores, and Acoustic Rankings) into intuitive, actionable mobile dashboards.
+Unlike commercial systems that passively log CO₂ and alert only after static thresholds are breached, this component introduces a proactive, explainable ML-driven approach. It processes precise telemetry from Photoacoustic NDIR sensors to dynamically compute the Air Stagnation Rate (ASR). By feeding this into an advanced Machine Learning forecasting model, the system predicts future CO₂ accumulation, derives a Time-to-Threshold (TTT) metric, and provides graduated ventilation guidance for lecturers before cognitive fatigue affects the students.
 
 ---
 
-## ✨ Key Technical Contributions (IT23321472)
+## ✨ Key Research Contributions & Novelty (IT23321472)
 
-### 1. Dual-Role Mobile Architecture
-* Engineered a scalable file-based routing system using **Expo Router**.
-* Developed completely distinct UI flows and navigation structures for **Public Students** (no-login required) and **Authenticated Admins/Lecturers**.
+### 1. Accurate IoT Telemetry Acquisition
+* Interfaced an ESP32 microcontroller with a Sensirion SCD40 Photoacoustic NDIR sensor.
+* Ensured the acquisition and transmission of accurate, drift-free CO₂, temperature, and humidity telemetry through UART and Wi-Fi communication.
 
-### 2. Real-Time Telemetry Visualization
-* Integrated dynamic Line Charts (`react-native-chart-kit`) to visualize the **40-Minute Environmental Trajectory** (combining historical CO₂ data with XGBoost predictive forecasts).
-* Designed the **Live Acoustic Ranking** horizontal scroller, dynamically mapping JSON telemetry into distinct visual cards (e.g., Silence, Ambient, Disruptive).
+### 2. Time-Series Data Architecture & ASR Algorithm
+* Designed and implemented a scalable time-series relational database and secure backend microservices for centralized ingestion and validation of concurrent IoT telemetry.
+* Developed a deterministic Air Stagnation Rate (ASR) algorithm to quantify the real-time rate of CO₂ accumulation.
 
-### 3. State Management & Real-time DB Integration
-* Implemented real-time listener
+### 3. Automated ML Training Pipeline
+* Collected historical session telemetry to construct an automatically labeled training dataset.
+* Matched current sensor readings (CO₂, ASR, temperature, humidity, elapsed time) with actual future CO₂ values, requiring zero manual labeling.
+
+### 4. Predictive Forecasting & Explainability
+* Trained an ML-based Adaptive CO₂ Forecast Model using Random Forest and XGBoost Regression to predict a 30-minute CO₂ array.
+* Derived a Time-to-Threshold (TTT) metric by scanning the forecast for the predicted breach point.
+* Built a rule-based Ventilation Recommendation engine to translate ML predictions into actionable guidance.
+* Generated explainable feature importance analysis, identifying key contributing factors (e.g., rapid CO₂ increase, elevated humidity) to transform the model from a black-box predictor into an interpretable diagnostic tool.
+
+### 5. Frontend Visualization Dashboard
+* Developed a React dashboard dedicated to visualizing air quality metrics.
+* Visualized real-time CO₂, ASR trends, the ML forecast graph with highlighted threshold crossings, TTT countdowns, ventilation recommendations, and explainability breakdowns.
+
+---
+
+## 📂 Component Directory Structure
+
+```text
+ComfortSense-Analytics/
+├── hardware/                 
+│   └── scd40_telemetry/      # ESP32 C++ scripts for NDIR sensor interfacing
+├── backend/                  
+│   ├── microservices/        # Secure ingestion and database validation scripts
+│   ├── core/                 
+│   │   ├── asr_algorithm.py          # Air Stagnation Rate computation
+│   │   ├── model_train_xgboost.py    # 30-min CO2 Forecasting & TTT scanning
+│   │   └── explainability.py         # Feature importance & diagnostic tool
+├── data/                     
+│   └── auto_labeled/         # Automatically labeled training datasets
+└── frontend/                 
+    └── src/components/       # React components for TTT, Forecast Charts, and Explanations
