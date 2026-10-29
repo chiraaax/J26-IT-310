@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getAuth } from 'firebase/auth'; // සරල getAuth පමණක් භාවිතා කරමු
 
 const firebaseConfig = {
   apiKey: "AIzaSyA32n3VOQS_uP794kW4V3-7Wg-4yosKlqw",

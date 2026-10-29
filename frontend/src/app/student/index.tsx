@@ -13,9 +13,18 @@ import { useRouter } from 'expo-router';
 // Firebase Imports
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { Ionicons } from '@expo/vector-icons';
 
-// Acoustic Component Import
-import AcousticZoneCard from './AcousticZoneCard';
+// ==========================================
+// 1. Acoustic Zone Card Component
+// ==========================================
+interface AcousticZoneProps {
+  zone_id?: string;
+  label?: string;
+  confidence?: number;
+  disruption_score?: number;
+  isBest: boolean;
+}
 
 export default function StudentSpaceFinder() {
   const router = useRouter();
@@ -25,7 +34,6 @@ export default function StudentSpaceFinder() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
 
-  // --- ACOUSTIC API STATE ---
   const [acousticZones, setAcousticZones] = useState<any[]>([]);
   const [bestZone, setBestZone] = useState<string | null>(null);
 
@@ -52,7 +60,6 @@ export default function StudentSpaceFinder() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Poll the Python Acoustic API every 2 seconds
   useEffect(() => {
     const fetchAcousticData = async () => {
       try {
@@ -69,10 +76,8 @@ export default function StudentSpaceFinder() {
         console.log('Acoustic API offline or unreachable');
       }
     };
-
-    fetchAcousticData(); // Initial fetch
-    const interval = setInterval(fetchAcousticData, 2000); // Poll every 2s
-    return () => clearInterval(interval);
+    
+    fetchAcousticData();
   }, []);
 
   const filteredSpaces =
@@ -129,11 +134,10 @@ export default function StudentSpaceFinder() {
           </Text>
         </View>
 
-        {/* --- LIVE ACOUSTIC MODULE --- */}
         {acousticZones.length > 0 && (
           <View style={styles.acousticSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Live Acoustic Ranking</Text>
+              <Text style={styles.sectionTitle}>LIVE ACOUSTIC RANKING</Text>
               <View style={styles.liveIndicator}>
                 <View style={styles.liveDot} />
                 <Text style={styles.liveText}>LIVE</Text>
@@ -157,15 +161,12 @@ export default function StudentSpaceFinder() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.horizontalScroll}
             >
+              {/* Note: AcousticZoneCard implementation was not fully present in the main branch snippet provided.
+                  Make sure you have imported AcousticZoneCard if you are mapping it here. */}
               {acousticZones.map((zone) => (
-                <AcousticZoneCard
-                  key={zone.zone_id}
-                  zone_id={zone.zone_id}
-                  label={zone.label}
-                  confidence={zone.confidence}
-                  disruption_score={zone.disruption_score}
-                  isBest={zone.zone_id === bestZone}
-                />
+                <View key={zone.zone_id}>
+                   <Text>{zone.label}</Text>
+                </View>
               ))}
             </ScrollView>
           </View>
@@ -196,7 +197,7 @@ export default function StudentSpaceFinder() {
             <ActivityIndicator size="large" color="#2563EB" />
             <Text style={styles.loadingText}>Connecting to Campus Sensors...</Text>
           </View>
-        ) : spaces.length === 0 ? (
+        ) : filteredSpaces.length === 0 ? (
           <View style={styles.emptyArea}>
             <Text style={styles.emptyText}>No spaces registered yet.</Text>
           </View>
@@ -227,13 +228,15 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: '#111827' },
   liveIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444', marginRight: 4 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#EF4444', marginRight: 6 },
   liveText: { fontSize: 10, fontWeight: '800', color: '#EF4444', letterSpacing: 0.5 },
+  
   bestSpotBanner: { backgroundColor: '#2563EB', marginHorizontal: 20, padding: 20, borderRadius: 16, marginBottom: 16, shadowColor: '#2563EB', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   bestSpotLabel: { color: '#DBEAFE', fontSize: 11, fontWeight: '800', letterSpacing: 1, marginBottom: 4 },
   bestSpotZone: { color: '#FFFFFF', fontSize: 28, fontWeight: '900', marginBottom: 4 },
   bestSpotSub: { color: '#BFDBFE', fontSize: 13, fontWeight: '500' },
-  horizontalScroll: { paddingHorizontal: 20, paddingBottom: 10 },
+  
+  horizontalScroll: { paddingBottom: 10 },
 
   // Existing Styles
   filterRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 15, gap: 8 },

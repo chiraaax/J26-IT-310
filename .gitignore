@@ -13,6 +13,7 @@ serviceAccountKey.json
 application_default_credentials.json
 backend/firebase-service-account.json
 backend/INMP/Datasets/*.json
+**/serviceAccountKey.json
 
 # Private keys & certs
 *.pem
@@ -60,7 +61,6 @@ data/processed/*
 backend/models/*.pkl
 *.dat
 *.log
-# *.csv  ← reconsider; path rules above may already cover your data
 
 # Allow folder structure
 !data/raw/.gitkeep
@@ -74,4 +74,3 @@ backend/models/*.pkl
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-**/serviceAccountKey.json
