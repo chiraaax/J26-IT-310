@@ -66,7 +66,8 @@ joblib.dump(multi_model, model_filename)
 print(f"Model saved to: {model_filename}\n")
 
 # 6. Time-to-Threshold (TTT) Demonstration
-THRESHOLD = 2000 
+# UPDATED: Set Danger Threshold to 1500 ppm for realistic classroom environments
+THRESHOLD = 1500 
 sample_input = X_test.iloc[0:1]
 forecast = multi_model.predict(sample_input)[0]
 
