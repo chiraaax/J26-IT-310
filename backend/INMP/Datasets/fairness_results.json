@@ -1,0 +1,17 @@
+{
+  "baseline_avg_fpr": 0.5906685326173993,
+  "proposed_avg_fpr": 0.0477549650033743,
+  "avg_reduction": 0.8867130260532545,
+  "per_room": [
+    {
+      "location": "library",
+      "baseline_fpr": 0.24933377748167887,
+      "proposed_fpr": 0.04224207961007311
+    },
+    {
+      "location": "study_area",
+      "baseline_fpr": 0.9320032877531196,
+      "proposed_fpr": 0.05326785039667548
+    }
+  ]
+}
