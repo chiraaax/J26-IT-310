@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, SafeAreaView, ActivityIndicator, Platform } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../../config/firebase'; 
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,38 +12,75 @@ export default function CO2Trend() {
   const [tttMinutes, setTttMinutes] = useState<string>("--");
   const [loading, setLoading] = useState(true);
 
+  const [pastData, setPastData] = useState<number[]>([]);
+  const [liveData, setLiveData] = useState<any>(null);
+
   useEffect(() => {
-    const docRef = doc(db, 'spaces', 'Lab 2.2');
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        
-        // අතීත විනාඩි 10 ක දත්ත සෑදීම (දැනට ඇති current_co2 අගය මත පදනම්ව)
-        const currentCO2 = data.current_co2 ? Number(data.current_co2) : 400;
-        const past10m = Math.max(400, currentCO2 - 40); // දළ අතීත අගයන් (Presentation එකට ගැලපෙන පරිදි)
-        const past5m = Math.max(400, currentCO2 - 20);
-        
-        let fullArray = [past10m, past5m, currentCO2]; // අතීතය + වර්තමානය
+    const roomName = 'Lab 2.2';
 
-        // අනාගත විනාඩි 30 ක දත්ත එකතු කිරීම
-        if (data.forecast_array && Array.isArray(data.forecast_array)) {
-          const forecast = data.forecast_array.map((val: any) => isNaN(Number(val)) ? 400 : Number(val));
-          fullArray = [...fullArray, ...forecast];
+    // 1. අතීත විනාඩි 10 ක දත්ත (Real History) Firebase වෙතින් ලබා ගැනීම
+    const historyRef = collection(db, 'co2_history');
+    const historyQuery = query(
+      historyRef, 
+      where('room', '==', roomName), 
+      orderBy('timestamp', 'desc'), 
+      limit(2) // අවසාන වාර්තා 2 ලබාගනී (-5m සහ -10m)
+    );
+    
+    const unsubHistory = onSnapshot(historyQuery, (snap) => {
+      if (!snap.empty) {
+        const docs = snap.docs.map(d => d.data());
+        // Descending නිසා docs[0] යනු -5m, docs[1] යනු -10m වේ
+        const val5m = docs[0]?.co2_ppm || docs[0]?.current_co2 || docs[0]?.co2 || null;
+        const val10m = docs[1]?.co2_ppm || docs[1]?.current_co2 || docs[1]?.co2 || val5m;
+        
+        if (val5m && val10m) {
+          setPastData([Number(val10m), Number(val5m)]);
         }
-
-        setChartData(fullArray);
-        setTttMinutes(data.ttt_minutes || "--");
       }
-      setLoading(false);
+    }, (err) => {
+      console.warn("History Firebase Index Issue (will use fallback):", err);
     });
 
-    return () => unsubscribe();
+    // 2. සජීවී දත්ත සහ අනාගත දත්ත (Live & Forecast) ලබා ගැනීම
+    const docRef = doc(db, 'spaces', roomName);
+    const unsubSpace = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setLiveData(docSnap.data());
+      }
+    });
+
+    return () => {
+      unsubHistory();
+      unsubSpace();
+    };
   }, []);
 
-  // එක් එක් ලක්ෂ්‍යය (Dot) සඳහා වර්ණය තීරණය කිරීමේ Logic එක
+  // 3. අතීතය, වර්තමානය සහ අනාගතය එකතු කර ප්‍රස්ථාරය සෑදීම
+  useEffect(() => {
+    if (liveData) {
+      const currentCO2 = liveData.current_co2 ? Number(liveData.current_co2) : 400;
+      
+      // Firebase හි History Data තිබේ නම් එය ගනී, නැතිනම් දළ අගයක් (Fallback) ගනී
+      const p10 = pastData.length === 2 ? pastData[0] : Math.max(400, currentCO2 - 40);
+      const p5 = pastData.length === 2 ? pastData[1] : Math.max(400, currentCO2 - 20);
+
+      let fullArray = [p10, p5, currentCO2];
+
+      if (liveData.forecast_array && Array.isArray(liveData.forecast_array)) {
+        const forecast = liveData.forecast_array.map((val: any) => isNaN(Number(val)) ? 400 : Number(val));
+        fullArray = [...fullArray, ...forecast];
+      }
+
+      setChartData(fullArray);
+      setTttMinutes(liveData.ttt_minutes || "--");
+      setLoading(false);
+    }
+  }, [liveData, pastData]);
+
   const getDotColor = (value: number, index: number) => {
-    if (index < 3) return "#10B981"; // අතීත විනාඩි 10 සහ වර්තමානය (Green)
-    if (value >= 1000) return "#EF4444"; // 1000 ppm ට වඩා වැඩි නම් අවදානම් (Red)
+    if (index < 3) return "#10B981"; // අතීතය සහ වර්තමානය (Green)
+    if (value >= 1000) return "#EF4444"; // අවදානම් අගයන් (Red)
     return "#F59E0B"; // අනාගත ආරක්ෂිත අගයන් (Yellow)
   };
 
@@ -64,11 +101,11 @@ export default function CO2Trend() {
           {loading ? (
             <ActivityIndicator size="large" color="#0F172A" style={{ marginVertical: 40 }} />
           ) : chartData.length === 0 ? (
-            <Text style={styles.footerText}>Waiting for ML Forecast Data...</Text>
+            <Text style={styles.footerText}>Waiting for Data...</Text>
           ) : Platform.OS === 'web' ? (
             <View style={{ padding: 40, alignItems: 'center' }}>
                <Text style={{ color: '#64748B', fontStyle: 'italic', textAlign: 'center' }}>
-                 Interactive charts are only fully supported on the Mobile App (Android/iOS).
+                 Interactive charts are only fully supported on the Mobile App.
                </Text>
             </View>
           ) : (
@@ -91,12 +128,11 @@ export default function CO2Trend() {
                   backgroundGradientFrom: "#ffffff",
                   backgroundGradientTo: "#ffffff",
                   decimalPlaces: 0, 
-                  color: (opacity = 1) => `rgba(245, 158, 11, ${opacity})`, // ප්‍රධාන රේඛාව කහ පැහැයෙන් (Yellow)
+                  color: (opacity = 1) => `rgba(245, 158, 11, ${opacity})`, 
                   labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
                   style: { borderRadius: 16 },
                   propsForDots: { r: "5", strokeWidth: "2", stroke: "#FFFFFF" }
                 }}
-                // තිත් වල වර්ණය වෙනස් කිරීමේ කේතය
                 getDotColor={(dataPoint, dataPointIndex) => getDotColor(dataPoint, dataPointIndex)}
                 bezier
                 style={{ marginVertical: 16, borderRadius: 16 }}
@@ -104,7 +140,6 @@ export default function CO2Trend() {
             </View>
           )}
 
-          {/* TTT (Time-to-Threshold) පෙන්වන කොටස */}
           <View style={[styles.tttBox, tttMinutes !== "> 30" ? styles.tttDanger : styles.tttSafe]}>
             <Ionicons name="timer-outline" size={20} color={tttMinutes !== "> 30" ? "#B91C1C" : "#0F172A"} style={{ marginRight: 8 }} />
             <Text style={[styles.tttText, tttMinutes !== "> 30" && styles.tttTextDanger]}>

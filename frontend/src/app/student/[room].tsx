@@ -56,17 +56,25 @@ export default function RoomTelemetryScreen() {
     return () => unsubscribeNoise();
   }, [room]);
 
+  // යාවත්කාලීන කළ ලකුණු ලබාදීමේ ක්‍රමවේදය (Realistic Scoring Logic)
   const calculateComfortIndex = () => {
     if (!co2Data) return 100;
     let score = 100;
-    if (co2Data.current_co2 > 1000) score -= 30;
-    else if (co2Data.current_co2 > 800) score -= 15;
-    if (co2Data.status === "CRITICAL") score -= 20;
-    else if (co2Data.status === "OPEN SOON") score -= 10;
+    
+    // CO2 දඬුවම් (Penalties) ASHRAE ප්‍රමිතීන්ට අනුව
+    if (co2Data.current_co2 > 1500) score -= 30;
+    else if (co2Data.current_co2 > 1200) score -= 15;
+    else if (co2Data.current_co2 > 1000) score -= 5;
+    
+    if (co2Data.status === "CRITICAL") score -= 15;
+    else if (co2Data.status === "OPEN SOON") score -= 5;
+    
+    // ශබ්ද දඬුවම්
     if (noiseData) {
         if (noiseData.label === "disruptive") score -= 25;
         else if (noiseData.label === "ambient") score -= 10;
     }
+    
     return Math.max(0, score);
   };
 
@@ -108,7 +116,6 @@ export default function RoomTelemetryScreen() {
           <Text style={styles.backBtnText}>Spaces</Text>
         </TouchableOpacity>
         
-        {/* Profile Icon at Top Right */}
         <TouchableOpacity onPress={() => router.push('/student/profile')} style={styles.profileBtn}>
           <Ionicons name="person-circle" size={36} color="#0F172A" />
         </TouchableOpacity>
@@ -172,7 +179,6 @@ export default function RoomTelemetryScreen() {
 
           <View style={styles.divider} />
 
-          {/* Student Comfort Feedback (Voting) Section */}
           <Text style={styles.votingTitle}>How does this room feel?</Text>
           
           {hasVoted ? (
@@ -229,7 +235,7 @@ const styles = StyleSheet.create({
   statusTitle: { fontSize: 13, color: '#E2E8F0', fontWeight: '800', textTransform: 'uppercase', marginBottom: 20, letterSpacing: 0.5 },
   indexCircle: { width: 110, height: 110, borderRadius: 55, borderWidth: 4, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   indexValue: { fontSize: 42, fontWeight: '900', color: '#FFFFFF' },
-  statusMessage: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }, // Smaller font size for Warning
+  statusMessage: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }, 
   
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
   gridBox: { width: '48%', backgroundColor: '#FFFFFF', paddingVertical: 20, paddingHorizontal: 12, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 12 },
